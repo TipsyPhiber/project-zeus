@@ -63,6 +63,7 @@ While the Simulation Mode runs on any machine with Docker, deploying to a live c
 1.  **AWS Account:** Active account with AdministratorAccess.
 2.  **AWS CLI:** Configured locally via `aws configure`.
 3.  **Terraform CLI:** Installed (v1.0+).
+4.  **Azure DevOps:** An active organization with a **Service Connection** configured to your AWS account (to authorize the pipeline).
 
 ---
 
