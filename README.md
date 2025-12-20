@@ -7,6 +7,15 @@ It is built with **AWS (Lambda, EKS, S3)**, defined via **Terraform**, container
 
 ![Project Zeus Dashboard](./demo.png)
 
+### 📋 Prerequisites (Production)
+While the Simulation Mode runs on any machine with Docker, deploying to a live cloud environment requires:
+1.  **AWS Account:** Active account with AdministratorAccess.
+2.  **AWS CLI:** Configured locally via `aws configure`.
+3.  **Terraform CLI:** Installed (v1.0+).
+4.  **Azure DevOps:** An active organization with a **Service Connection** configured to your AWS account (to authorize the pipeline).
+
+---
+
 ---
 
 ### 🏗️ Architecture & Components
@@ -58,14 +67,7 @@ Connects to AWS CloudWatch to monitor remote EKS clusters.
 
 ---
 
-### 📋 Prerequisites (Production)
-While the Simulation Mode runs on any machine with Docker, deploying to a live cloud environment requires:
-1.  **AWS Account:** Active account with AdministratorAccess.
-2.  **AWS CLI:** Configured locally via `aws configure`.
-3.  **Terraform CLI:** Installed (v1.0+).
-4.  **Azure DevOps:** An active organization with a **Service Connection** configured to your AWS account (to authorize the pipeline).
 
----
 
 ### 🛡️ License
 Distributed under the MIT License. See `LICENSE` for more information.
