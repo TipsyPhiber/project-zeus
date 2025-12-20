@@ -15,6 +15,29 @@ While the Simulation Mode runs on any machine with Docker, deploying to a live c
 2.  **AWS CLI:** Installed and configured locally via `aws configure`.
 3.  **Azure DevOps:** A project set up with a **Service Connection** to your AWS environment.
 4.  **Terraform CLI:** Installed (v1.0+).
+
+### 🎮 Modes of Operation
+Project Zeus is designed to be modular. You can run it in three different modes depending on your environment.
+
+#### Mode 1: Simulation (Default)
+Generates mock telemetry data. Useful for frontend development and UI testing without needing access to system resources.
+* **Setup:** No changes needed.
+* **Usage:** `docker run -p 8080:80 zeus-monitor`
+
+#### Mode 2: Local System Monitor (Real Data)
+Connects to the host Linux kernel to visualize **actual** CPU and Memory usage of the local machine.
+* **Requirement:** Add `psutil` to `requirements.txt`.
+* **Code Change:** In `src/app.py`, use the `psutil` library instead of `random`.
+* **Why use this:** Proves the application logic works with real-time, fluctuating data streams.
+
+#### Mode 3: Cloud Production (AWS)
+Connects to AWS CloudWatch to monitor remote EKS clusters.
+* **Requirement:** AWS Credentials configured via IAM.
+* **Code Change:** In `src/app.py`, import `boto3` and replace the metric fetcher:
+  ```python
+  import boto3
+  client = boto3.client('cloudwatch', region_name='us-east-1')
+  # Fetch real metric
 ### 🏗️ Architecture & Components
 This project is a modular system composed of four distinct pillars, designed for scalability and reproducibility.
 

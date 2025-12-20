@@ -17,3 +17,9 @@ variable "instance_type" {
   description = "The size of the worker nodes"
   default     = "t2.micro"
 }
+
+# --- ADDED FOR RESUME ACCURACY ---
+variable "s3_bucket_name" {
+  description = "The global unique name for the S3 log bucket"
+  default     = "zeus-app-logs-global"
+}

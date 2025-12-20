@@ -2,17 +2,23 @@ provider "aws" {
   region = var.aws_region
 }
 
-# --- NETWORK ---
+# --- NETWORK CONFIGURATION ---
 resource "aws_vpc" "zeus_vpc" {
   cidr_block = "10.0.0.0/16"
+  tags = {
+    Name = "Zeus-VPC"
+  }
 }
 
 resource "aws_subnet" "main" {
   vpc_id     = aws_vpc.zeus_vpc.id
   cidr_block = "10.0.1.0/24"
+  tags = {
+    Name = "Zeus-Subnet-1"
+  }
 }
 
-# --- IAM ROLES ---
+# --- IAM ROLES & SECURITY ---
 resource "aws_iam_role" "zeus_role" {
   name = "zeus_eks_cluster_role"
   assume_role_policy = jsonencode({
@@ -37,7 +43,7 @@ resource "aws_iam_role" "iam_for_lambda" {
   })
 }
 
-# --- RESOURCES ---
+# --- COMPUTE RESOURCES (EKS & EC2) ---
 resource "aws_eks_cluster" "zeus_cluster" {
   name     = var.cluster_name
   role_arn = aws_iam_role.zeus_role.arn
@@ -57,5 +63,92 @@ resource "aws_lambda_function" "zeus_monitor" {
 resource "aws_instance" "worker_node" {
   ami           = "ami-0c55b159cbfafe1f0"
   instance_type = var.instance_type
-  tags = { Name = "Zeus-Worker" }
+  tags = { 
+    Name = "Zeus-Worker"
+    Type = "Compute"
+  }
+}
+
+# --- STORAGE & LOGGING ---
+resource "aws_s3_bucket" "zeus_logs" {
+  bucket = var.s3_bucket_name
+  tags = {
+    Name        = "Zeus Logs"
+    Environment = "Production"
+  }
+}
+
+# --- CI/CD PIPELINE ---
+resource "aws_codepipeline" "zeus_pipeline" {
+  name     = "zeus-deployment-pipeline"
+  role_arn = aws_iam_role.zeus_role.arn
+
+  artifact_store {
+    location = aws_s3_bucket.zeus_logs.bucket
+    type     = "S3"
+  }
+
+  stage {
+    name = "Source"
+    action {
+      name             = "Source"
+      category         = "Source"
+      owner            = "AWS"
+      provider         = "S3"
+      version          = "1"
+      output_artifacts = ["source_output"]
+      configuration = {
+        S3Bucket = aws_s3_bucket.zeus_logs.bucket
+        S3Key    = "source.zip"
+      }
+    }
+  }
+  
+  stage {
+    name = "Build"
+    action {
+      name             = "Build"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      input_artifacts  = ["source_output"]
+      version          = "1"
+      configuration = {
+        ProjectName = "ZeusBuild"
+      }
+    }
+  }
+}
+
+# --- BUILD SERVER (Matches Resume Claim) ---
+resource "aws_codebuild_project" "zeus_build" {
+  name          = "ZeusBuild"
+  description   = "Builds the Zeus Docker container"
+  build_timeout = "5"
+  service_role  = aws_iam_role.zeus_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/standard:5.0"
+    type                        = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+    
+    environment_variable {
+      name  = "AWS_DEFAULT_REGION"
+      value = var.aws_region
+    }
+  }
+
+  source {
+    type      = "CODEPIPELINE"
+    buildspec = "buildspec.yml"
+  }
+
+  tags = {
+    Environment = "Production"
+  }
 }
