@@ -2,6 +2,13 @@ provider "aws" {
   region = var.aws_region
 }
 
+# --- AUTOMATIC ZIPPING ---
+data "archive_file" "lambda_zip" {
+  type        = "zip"
+  source_file = "${path.module}/lambda_function.py"
+  output_path = "${path.module}/lambda_function_payload.zip"
+}
+
 # --- NETWORK CONFIGURATION ---
 resource "aws_vpc" "zeus_vpc" {
   cidr_block = "10.0.0.0/16"
