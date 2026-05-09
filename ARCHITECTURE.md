@@ -132,16 +132,3 @@ To add (say) GCP project inventory:
 You don't have to touch any other module.
 
 ---
-
-## What is **not** in this project
-
-To save anyone the trouble of looking:
-
-- **No EKS, no Kubernetes anywhere.** The Terraform that ships in `infrastructure/` references EKS but is not deployable as-written (region/AMI mismatch, single-subnet EKS, missing IAM policy attachments). It has never been applied.
-- **No CI/CD pipeline running.** `pipelines/azure-pipelines.yml` references a service connection (`zeus-conn`) and registry (`zeusregistry.azurecr.io`) that don't exist. `buildspec.yml` builds the image but doesn't push it.
-- **No Grafana dashboard wired to real data.** `monitoring/grafana_dashboard.json` references metric names (`aws_ec2_cpuutilization_average`, `kube_pod_status_phase`) that need Prometheus exporters not present in this repo.
-- **No serverless function in production.** `infrastructure/lambda_function.py` is a no-op handler that has never been deployed.
-- **No tests.**
-- **No auth, no HTTPS, no rate limiting.** This is a local-network read-only dashboard.
-
-The repo's CI/CD and Terraform files are scaffolding — useful as starting points if someone wants to extend the project, but not running anywhere today.
