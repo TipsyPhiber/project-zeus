@@ -11,7 +11,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for a full description of how the code 
 - Shows AWS account / EC2 / S3 inventory via `boto3` when credentials are present
 - Exposes JSON at `/api/host`, `/api/containers`, `/api/aws`, and `/health`
 
-If a data source isn't reachable (no Docker, no AWS creds) the dashboard says so. There is no fallback to fake data.
+If a data source isn't reachable (no Docker, no AWS creds) the dashboard says so.
 
 ## Running it
 
