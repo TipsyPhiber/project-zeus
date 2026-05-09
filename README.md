@@ -2,6 +2,8 @@
 
 A Flask dashboard that reports real host metrics, Docker containers, AWS/GCP inventory, and Kubernetes cluster summaries. No simulated data — if a source isn't reachable the dashboard says so.
 
+![Project Zeus dashboard](./zeus_dashboard.png)
+
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for module-by-module detail.
 
 ## What it shows
