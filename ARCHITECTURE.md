@@ -12,10 +12,6 @@ A small Flask web app that displays three things on one page:
 2. **Docker containers** — a list of running and stopped containers on the local Docker daemon, read via the Docker socket.
 3. **AWS account inventory** — when AWS credentials are present, the account ID, region, EC2 instance counts (grouped by state), and S3 bucket count, read via `boto3`.
 
-That is the entire feature set. There is no scheduling, no alerting, no auto-scaling, no Kubernetes integration, no multi-cloud, no auth.
-
-If a data source isn't reachable (no Docker socket, no AWS credentials), the dashboard says so explicitly. There is no simulated data.
-
 ---
 
 ## Module map
