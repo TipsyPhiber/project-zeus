@@ -34,13 +34,26 @@ h2 { color:#8b949e; font-size:0.9em; text-transform:uppercase; letter-spacing:1p
 .dot-green { background:#3fb950; box-shadow:0 0 6px #3fb950; }
 .dot-red   { background:#f85149; }
 .kv { display:flex; gap:10px; padding:4px 0; }
-.k  { width:60px; color:#8b949e; font-size:0.85em; }
+.k  { width:80px; color:#8b949e; font-size:0.85em; }
 .v  { flex:1; }
 .pill { background:#21262d; border:1px solid #30363d; border-radius:10px;
         padding:1px 8px; margin-right:4px; font-size:0.85em; }
 footer { margin-top:30px; color:#484f58; font-size:0.75em; text-align:center; }
 footer a { color:#484f58; }
 """
+
+
+def _disconnected(name: str, error: str) -> str:
+    return (f'<div class="provider">'
+            f'<div class="provider-head"><span class="dot dot-red"></span>'
+            f'<strong>{name}</strong>'
+            f'<span class="muted"> — not connected</span></div>'
+            f'<div class="muted small">{error}</div>'
+            f'</div>')
+
+
+def _pills(d: dict) -> str:
+    return " ".join(f'<span class="pill">{k}: {v}</span>' for k, v in d.items())
 
 
 def _render_host(h: dict) -> str:
@@ -76,30 +89,15 @@ def _render_containers(c: dict) -> str:
 
 def _render_aws(aws: dict) -> str:
     if not aws.get("connected"):
-        return (f'<div class="provider">'
-                f'<div class="provider-head"><span class="dot dot-red"></span>'
-                f'<strong>AWS</strong>'
-                f'<span class="muted"> — not connected</span></div>'
-                f'<div class="muted small">{aws.get("error", "Unknown error")}</div>'
-                f'</div>')
-
+        return _disconnected("AWS", aws.get("error", "Unknown error"))
     ec2 = aws.get("ec2") or {}
     s3 = aws.get("s3") or {}
-
-    if "error" in ec2:
-        ec2_html = f'<span class="muted small">error: {ec2["error"]}</span>'
-    else:
-        pills = " ".join(
-            f'<span class="pill">{k}: {v}</span>'
-            for k, v in (ec2.get("by_state") or {}).items()
-        )
-        ec2_html = f'{ec2.get("total", 0)} total {pills}'
-
-    if "error" in s3:
-        s3_html = f'<span class="muted small">error: {s3["error"]}</span>'
-    else:
-        s3_html = f'{s3.get("buckets", 0)} buckets'
-
+    ec2_html = (f'<span class="muted small">error: {ec2["error"]}</span>'
+                if "error" in ec2
+                else f'{ec2.get("total", 0)} total {_pills(ec2.get("by_state") or {})}')
+    s3_html = (f'<span class="muted small">error: {s3["error"]}</span>'
+               if "error" in s3
+               else f'{s3.get("buckets", 0)} buckets')
     return (f'<div class="provider">'
             f'<div class="provider-head"><span class="dot dot-green"></span>'
             f'<strong>AWS</strong>'
@@ -113,7 +111,60 @@ def _render_aws(aws: dict) -> str:
             f'</div>')
 
 
-def page(host: dict, containers: dict, aws: dict) -> str:
+def _render_gcp(gcp: dict) -> str:
+    if not gcp.get("connected"):
+        return _disconnected("GCP", gcp.get("error", "Unknown error"))
+    compute = gcp.get("compute") or {}
+    storage = gcp.get("storage") or {}
+    compute_html = (f'<span class="muted small">error: {compute["error"]}</span>'
+                    if "error" in compute
+                    else f'{compute.get("total", 0)} total '
+                         f'{_pills(compute.get("by_state") or {})}')
+    storage_html = (f'<span class="muted small">error: {storage["error"]}</span>'
+                    if "error" in storage
+                    else f'{storage.get("buckets", 0)} buckets')
+    return (f'<div class="provider">'
+            f'<div class="provider-head"><span class="dot dot-green"></span>'
+            f'<strong>GCP</strong>'
+            f'<span class="muted small"> — project {gcp["project"]}</span></div>'
+            f'<div class="kv"><span class="k">Compute</span>'
+            f'<span class="v">{compute_html}</span></div>'
+            f'<div class="kv"><span class="k">Storage</span>'
+            f'<span class="v">{storage_html}</span></div>'
+            f'</div>')
+
+
+def _render_k8s(k: dict) -> str:
+    if not k.get("connected"):
+        return _disconnected("Kubernetes", k.get("error", "Unknown error"))
+    nodes = k.get("nodes") or {}
+    pods = k.get("pods") or {}
+    ns = k.get("namespaces")
+    nodes_html = (f'<span class="muted small">error: {nodes["error"]}</span>'
+                  if isinstance(nodes, dict) and "error" in nodes
+                  else f'{nodes.get("ready", 0)}/{nodes.get("total", 0)} ready')
+    pods_html = (f'<span class="muted small">error: {pods["error"]}</span>'
+                 if isinstance(pods, dict) and "error" in pods
+                 else f'{pods.get("total", 0)} total '
+                      f'{_pills(pods.get("by_phase") or {})}')
+    ns_html = (f'<span class="muted small">error: {ns["error"]}</span>'
+               if isinstance(ns, dict) and "error" in ns
+               else f'{ns} namespaces')
+    return (f'<div class="provider">'
+            f'<div class="provider-head"><span class="dot dot-green"></span>'
+            f'<strong>Kubernetes</strong>'
+            f'<span class="muted small"> — {k.get("version", "?")} • '
+            f'{k.get("auth", "?")}</span></div>'
+            f'<div class="kv"><span class="k">Nodes</span>'
+            f'<span class="v">{nodes_html}</span></div>'
+            f'<div class="kv"><span class="k">Pods</span>'
+            f'<span class="v">{pods_html}</span></div>'
+            f'<div class="kv"><span class="k">Namespaces</span>'
+            f'<span class="v">{ns_html}</span></div>'
+            f'</div>')
+
+
+def page(host: dict, containers: dict, aws: dict, gcp: dict, k8s: dict) -> str:
     running = sum(1 for x in containers.get("containers", [])
                   if x.get("status") == "running")
     total = len(containers.get("containers", []))
@@ -136,6 +187,10 @@ def page(host: dict, containers: dict, aws: dict) -> str:
 
     <h2>Cloud Providers</h2>
     {_render_aws(aws)}
+    {_render_gcp(gcp)}
+
+    <h2>Kubernetes</h2>
+    {_render_k8s(k8s)}
 
     <h2>Docker Containers ({running}/{total} running)</h2>
     {_render_containers(containers)}
@@ -145,6 +200,8 @@ def page(host: dict, containers: dict, aws: dict) -> str:
       <a href="/api/host">/api/host</a> •
       <a href="/api/containers">/api/containers</a> •
       <a href="/api/aws">/api/aws</a> •
+      <a href="/api/gcp">/api/gcp</a> •
+      <a href="/api/kubernetes">/api/kubernetes</a> •
       <a href="/health">/health</a>
     </footer>
 </body>

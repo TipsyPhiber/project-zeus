@@ -8,9 +8,11 @@ import os
 from flask import Flask, jsonify
 
 import cloud_aws
+import cloud_gcp
 import containers
 import dashboard
 import host_metrics
+import k8s
 
 app = Flask(__name__)
 
@@ -21,6 +23,8 @@ def index():
         host=host_metrics.read(),
         containers=containers.read(),
         aws=cloud_aws.read(),
+        gcp=cloud_gcp.read(),
+        k8s=k8s.read(),
     )
 
 
@@ -37,6 +41,16 @@ def api_containers():
 @app.route("/api/aws")
 def api_aws():
     return jsonify(cloud_aws.read())
+
+
+@app.route("/api/gcp")
+def api_gcp():
+    return jsonify(cloud_gcp.read())
+
+
+@app.route("/api/kubernetes")
+def api_kubernetes():
+    return jsonify(k8s.read())
 
 
 @app.route("/health")

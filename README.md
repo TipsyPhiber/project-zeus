@@ -1,21 +1,19 @@
 # Project Zeus
 
-A Flask dashboard that reports real host metrics, real Docker container state, and real AWS account inventory. No simulated data.
+A Flask dashboard that reports real host metrics, Docker containers, AWS/GCP inventory, and Kubernetes cluster summaries. No simulated data — if a source isn't reachable the dashboard says so.
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for a full description of how the code is organised and what's intentionally not in scope.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for module-by-module detail.
 
-## What it does
+## What it shows
 
-- Shows host CPU / memory / disk via `psutil`
-- Lists local Docker containers via the Docker socket
-- Shows AWS account / EC2 / S3 inventory via `boto3` when credentials are present
-- Exposes JSON at `/api/host`, `/api/containers`, `/api/aws`, and `/health`
+- Host CPU / memory / disk via `psutil`
+- Local Docker containers via the Docker socket
+- AWS account / EC2 / S3 via `boto3`
+- GCP project / Compute / Storage via `google-cloud` SDKs
+- Kubernetes cluster version / nodes / pods / namespaces via the official `kubernetes` client
+- JSON for each at `/api/host`, `/api/containers`, `/api/aws`, `/api/gcp`, `/api/kubernetes`, `/health`
 
-If a data source isn't reachable (no Docker, no AWS creds) the dashboard says so.
-
-## Running it
-
-### With Python
+## Quick start
 
 ```bash
 cd src
@@ -23,9 +21,9 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open <http://localhost:8080>.
+Open <http://localhost:8080>. Each panel will be green or "not connected" depending on what credentials are on the machine — see [ARCHITECTURE.md](./ARCHITECTURE.md#credentials) for the credential chains.
 
-### With Docker
+## Run in Docker
 
 ```bash
 docker build -t zeus-monitor .
@@ -33,29 +31,43 @@ docker build -t zeus-monitor .
 docker run -p 8080:8080 \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v ~/.aws:/root/.aws:ro \
-  -e AWS_REGION=us-east-1 \
+  -v ~/.config/gcloud:/root/.config/gcloud:ro \
+  -v ~/.kube:/root/.kube:ro \
   zeus-monitor
 ```
 
-The Docker-socket mount enables container listing. The `~/.aws` mount enables AWS lookups. Either can be omitted; the dashboard will report that source as unavailable.
+Drop any mount you don't need; that source will report unavailable.
+
+## Deploy to Kubernetes
+
+Two paths.
+
+**You already have a cluster:**
+```bash
+kubectl apply -f deploy/kubernetes/
+```
+See [deploy/kubernetes/README.md](./deploy/kubernetes/README.md).
+
+**You want a fresh GKE Autopilot cluster:**
+```bash
+cd deploy/terraform
+terraform init
+terraform apply -var="project_id=YOUR_GCP_PROJECT" -var="image=YOUR_REGISTRY/zeus-monitor:1"
+```
+See [deploy/terraform/README.md](./deploy/terraform/README.md).
 
 ## Repository layout
 
 ```
-src/
-  app.py            Flask routes
-  dashboard.py      HTML rendering
-  host_metrics.py   psutil host metrics
-  containers.py     Docker container inventory
-  cloud_aws.py      boto3 AWS probe
-  cache.py          TTL cache decorator
-  requirements.txt
+src/                   Python source — one module per data source
+deploy/kubernetes/     YAML manifests
+deploy/terraform/      GKE Autopilot + app deployment
 Dockerfile
-scripts/health_check.sh   ad-hoc shell script for inspecting a host
+scripts/health_check.sh
 ARCHITECTURE.md
 LICENSE
 ```
 
 ## License
 
-MIT — see `LICENSE`.
+MIT.

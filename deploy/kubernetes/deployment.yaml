@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zeus-monitor
+  namespace: zeus
+  labels:
+    app: zeus-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zeus-monitor
+  template:
+    metadata:
+      labels:
+        app: zeus-monitor
+    spec:
+      serviceAccountName: zeus
+      containers:
+        - name: zeus
+          # Replace with your registry/tag, e.g. gcr.io/<project>/zeus-monitor:1
+          image: zeus-monitor:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: PORT
+              value: "8080"
+          # Resource requests are required on GKE Autopilot.
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
