@@ -121,11 +121,15 @@ If none are present, the corresponding `read()` returns `{"connected": false, "e
 
 ```bash
 cd src
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 python app.py
 ```
 
-Then open <http://localhost:8080>. Override the port with `PORT=9000 python app.py`.
+Then open <http://localhost:8080>. Override the port with `PORT=9000 python app.py`. On systems with PEP 668 (Debian/Ubuntu/Kali recent versions) the venv step isn't optional — installing into system Python is blocked.
+
+If you're inside a Flatpak-sandboxed shell (e.g. VS Code's integrated terminal when VS Code is installed via Flatpak), the Docker panel will report "not connected" because the sandbox hides `/var/run/docker.sock`. Run the server from a regular host terminal.
 
 ### In Docker
 

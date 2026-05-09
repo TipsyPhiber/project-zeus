@@ -47,7 +47,12 @@ def read() -> dict:
         try:
             out = []
             for c in client.containers.list(all=True):
-                image = c.image.tags[0] if c.image.tags else c.image.short_id
+                # Read from cached attrs dict (populated by list()) rather than
+                # c.image, which does an extra GET /images/<sha>/json that 404s
+                # if the image was replaced or pruned after the container started.
+                image = (c.attrs.get("Config", {}).get("Image")
+                         or c.attrs.get("Image", "")[:19]
+                         or "<unknown>")
                 out.append({"name": c.name, "image": image, "status": c.status})
             return {"available": True, "source": label, "containers": out}
         except DockerException as e:

@@ -19,11 +19,17 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for module-by-module detail.
 
 ```bash
 cd src
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 python app.py
 ```
 
 Open <http://localhost:8080>. Each panel will be green or "not connected" depending on what credentials are on the machine — see [ARCHITECTURE.md](./ARCHITECTURE.md#credentials) for the credential chains.
+
+Subsequent runs only need `source .venv/bin/activate && python app.py`.
+
+> **Note for VS Code Flatpak users:** the integrated terminal runs inside the Flatpak sandbox and can't access `/var/run/docker.sock`. Run the server from a host terminal (GNOME Terminal / Konsole / Kitty / etc.) so the Docker panel can see your local containers.
 
 ## Run in Docker
 
