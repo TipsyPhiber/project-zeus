@@ -31,7 +31,7 @@ def _load_config() -> str:
         return ""
 
 
-@ttl_cache(seconds=5.0)
+@ttl_cache(seconds=2.0)
 def read() -> dict:
     try:
         from kubernetes import client

@@ -164,19 +164,13 @@ def _render_k8s(k: dict) -> str:
             f'</div>')
 
 
-def page(host: dict, containers: dict, aws: dict, gcp: dict, k8s: dict) -> str:
+def body(host: dict, containers: dict, aws: dict, gcp: dict, k8s: dict) -> str:
+    """The dynamic part of the dashboard. Returned both at first render and
+    by /partial for the background poller to swap in."""
     running = sum(1 for x in containers.get("containers", [])
                   if x.get("status") == "running")
     total = len(containers.get("containers", []))
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-    <title>Zeus Infrastructure Monitor</title>
-    <meta http-equiv="refresh" content="10">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <style>{_CSS}</style>
-</head>
-<body>
+    return f"""
     <h1>⚡ Project Zeus</h1>
     <p style="text-align:center;" class="muted">
       Host: {host['hostname']} • {host['timestamp']}
@@ -194,9 +188,40 @@ def page(host: dict, containers: dict, aws: dict, gcp: dict, k8s: dict) -> str:
 
     <h2>Docker Containers ({running}/{total} running)</h2>
     {_render_containers(containers)}
+    """
 
+
+_POLL_JS = """
+(function () {
+  const interval = 2000;
+  const target = document.getElementById('dashboard-body');
+  let inFlight = false;
+  async function refresh() {
+    if (inFlight) return;
+    inFlight = true;
+    try {
+      const r = await fetch('/partial', { cache: 'no-store' });
+      if (r.ok) target.innerHTML = await r.text();
+    } catch (e) { /* network blip — try again next tick */ }
+    inFlight = false;
+  }
+  setInterval(refresh, interval);
+})();
+"""
+
+
+def page(host: dict, containers: dict, aws: dict, gcp: dict, k8s: dict) -> str:
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>Zeus Infrastructure Monitor</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>{_CSS}</style>
+</head>
+<body>
+    <div id="dashboard-body">{body(host, containers, aws, gcp, k8s)}</div>
     <footer>
-      Auto-refreshing every 10s •
+      Live updates every 2s •
       <a href="/api/host">/api/host</a> •
       <a href="/api/containers">/api/containers</a> •
       <a href="/api/aws">/api/aws</a> •
@@ -204,5 +229,6 @@ def page(host: dict, containers: dict, aws: dict, gcp: dict, k8s: dict) -> str:
       <a href="/api/kubernetes">/api/kubernetes</a> •
       <a href="/health">/health</a>
     </footer>
+    <script>{_POLL_JS}</script>
 </body>
 </html>"""

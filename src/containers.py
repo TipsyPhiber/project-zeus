@@ -33,7 +33,7 @@ def _candidate_sockets():
             yield path, f"unix://{path}"
 
 
-@ttl_cache(seconds=5.0)
+@ttl_cache(seconds=1.5)
 def read() -> dict:
     tried = []
     for label, url in _candidate_sockets():

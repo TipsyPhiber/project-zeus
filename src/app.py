@@ -4,6 +4,7 @@ Each `/api/*` route returns the raw dict from one module; `/` composes
 them into the dashboard HTML via dashboard.page().
 """
 import os
+from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask, jsonify
 
@@ -16,16 +17,30 @@ import k8s
 
 app = Flask(__name__)
 
+# One pool reused across requests so we don't pay thread-creation cost per poll.
+_pool = ThreadPoolExecutor(max_workers=5, thread_name_prefix="probe")
+
+
+def _read_all() -> dict:
+    """Run all five data probes concurrently. Total time = the slowest probe."""
+    futures = {
+        "host": _pool.submit(host_metrics.read),
+        "containers": _pool.submit(containers.read),
+        "aws": _pool.submit(cloud_aws.read),
+        "gcp": _pool.submit(cloud_gcp.read),
+        "k8s": _pool.submit(k8s.read),
+    }
+    return {k: f.result() for k, f in futures.items()}
+
 
 @app.route("/")
 def index():
-    return dashboard.page(
-        host=host_metrics.read(),
-        containers=containers.read(),
-        aws=cloud_aws.read(),
-        gcp=cloud_gcp.read(),
-        k8s=k8s.read(),
-    )
+    return dashboard.page(**_read_all())
+
+
+@app.route("/partial")
+def partial():
+    return dashboard.body(**_read_all())
 
 
 @app.route("/api/host")

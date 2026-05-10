@@ -13,8 +13,26 @@ import os
 from cache import ttl_cache
 
 
-@ttl_cache(seconds=30.0)
+_NO_CREDS_MSG = (
+    "No GCP credentials found. Run `gcloud auth application-default login` "
+    "or set GOOGLE_APPLICATION_CREDENTIALS to a service-account key."
+)
+
+
+def _likely_has_creds() -> bool:
+    """Cheap check before invoking google.auth.default(), which can spend
+    several seconds probing the GCE metadata server on non-GCE hosts."""
+    if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+        return True
+    adc = os.path.expanduser("~/.config/gcloud/application_default_credentials.json")
+    return os.path.exists(adc)
+
+
+@ttl_cache(seconds=30.0, stale_while_revalidate=True)
 def read() -> dict:
+    if not _likely_has_creds():
+        return {"connected": False, "error": _NO_CREDS_MSG}
+
     try:
         import google.auth
         from google.auth.exceptions import DefaultCredentialsError, GoogleAuthError
@@ -25,14 +43,7 @@ def read() -> dict:
     try:
         creds, project_id = google.auth.default()
     except DefaultCredentialsError as e:
-        return {
-            "connected": False,
-            "error": (
-                "No GCP credentials found. Run `gcloud auth application-default "
-                "login` or set GOOGLE_APPLICATION_CREDENTIALS to a service-account "
-                f"key. ({e})"
-            ),
-        }
+        return {"connected": False, "error": f"{_NO_CREDS_MSG} ({e})"}
 
     project_id = project_id or os.environ.get("GOOGLE_CLOUD_PROJECT")
     if not project_id:

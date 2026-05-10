@@ -11,7 +11,7 @@ import os
 from cache import ttl_cache
 
 
-@ttl_cache(seconds=30.0)
+@ttl_cache(seconds=30.0, stale_while_revalidate=True)
 def read() -> dict:
     try:
         import boto3
